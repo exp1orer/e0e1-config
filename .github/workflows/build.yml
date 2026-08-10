@@ -1,11 +1,11 @@
-name: Build Windows x86 Binary (with CGO)
+name: Build Windows x86 Binary (Pure Go)
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch:   # 手动触发
+  workflow_dispatch:
 
 jobs:
   build:
@@ -17,25 +17,17 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.20'   # 与项目 go.mod 保持一致
+          go-version: '1.20'
 
-      # 安装 MSYS2 并安装 32 位 MinGW-w64 GCC
-      - name: Install MSYS2 with MinGW-w64 (i686)
-        uses: msys2/setup-msys2@v2
-        with:
-          update: true
-          install: mingw-w64-i686-gcc
-          path-type: inherit   # 🔑 关键：继承系统 PATH，这样 go 命令才可用
+      # 升级 modernc.org/sqlite 到纯 Go 版本
+      - name: Upgrade SQLite driver
+        run: go get -u modernc.org/sqlite@latest
 
-      # 在 MSYS2 环境中编译，指定 32 位架构
-      - name: Build for Windows x86
-        shell: msys2 {0}
+      - name: Build for Windows x86 (no CGO)
         run: |
-          export CC=i686-w64-mingw32-gcc
-          export CXX=i686-w64-mingw32-g++
-          export GOOS=windows
-          export GOARCH=386
-          export CGO_ENABLED=1
+          $env:CGO_ENABLED = "0"
+          $env:GOOS = "windows"
+          $env:GOARCH = "386"
           go build -ldflags "-w -s" -o e0e1-config.exe .
 
       - name: Upload artifact
