@@ -14,18 +14,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 升级到 Go 1.23（支持最新的 modernc.org 包）
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.20'
+          go-version: '1.23'
 
-      # 强制升级 modernc.org/sqlite 到纯 Go 版本（v1.28+）
+      # 升级 modernc.org/sqlite 到纯 Go 版本（v1.28+）
+      # 为避免自动拉取过新版本导致依赖冲突，可指定稳定版本
       - name: Upgrade SQLite driver to pure-Go version
         run: |
-          go get modernc.org/sqlite@latest
+          go get modernc.org/sqlite@v1.29.0
           go mod tidy
 
-      # 现在可以禁用 CGO 编译 32 位 Windows 二进制
+      # 禁用 CGO，编译 32 位 Windows 二进制
       - name: Build for Windows x86
         run: |
           $env:CGO_ENABLED = "0"
