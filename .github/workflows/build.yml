@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch:   # 支持手动触发
+  workflow_dispatch:   # 手动触发
 
 jobs:
   build:
@@ -19,23 +19,21 @@ jobs:
         with:
           go-version: '1.20'   # 与项目 go.mod 保持一致
 
-      # 安装 MSYS2 并配置 32 位 MinGW（gcc）
-      - name: Install MSYS2 with MinGW-w64 (i686)
-        uses: msys2/setup-msys2@v2
+      # 安装 MinGW-w64 (32位)，并自动加入 PATH
+      - name: Install MinGW-w64 (i686)
+        uses: eike-hass/action-mingw-w64@v1
         with:
-          update: true
-          install: >-
-            mingw-w64-i686-gcc
+          architecture: i686   # 32 位
+          platform: posix      # 或 win32，posix 更通用
 
-      # 在 MSYS2 环境中编译，指定 32 位架构
       - name: Build for Windows x86
-        shell: msys2 {0}
+        shell: powershell
         run: |
-          export CC=i686-w64-mingw32-gcc
-          export CXX=i686-w64-mingw32-g++
-          export GOOS=windows
-          export GOARCH=386
-          export CGO_ENABLED=1
+          $env:CC = "i686-w64-mingw32-gcc"
+          $env:CXX = "i686-w64-mingw32-g++"
+          $env:GOOS = "windows"
+          $env:GOARCH = "386"
+          $env:CGO_ENABLED = "1"
           go build -ldflags "-w -s" -o e0e1-config.exe .
 
       - name: Upload artifact
