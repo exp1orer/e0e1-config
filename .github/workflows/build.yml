@@ -1,15 +1,15 @@
-name: Build Windows x86 Binary
+name: Build Windows x86 Binary (with CGO)
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch:
+  workflow_dispatch:   # 支持手动触发
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -17,18 +17,26 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.20'
+          go-version: '1.20'   # 与项目 go.mod 保持一致
 
-      - name: Install MinGW and SQLite dev
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-mingw-w64-i686 sqlite3 libsqlite3-dev
+      # 安装 MSYS2 并配置 32 位 MinGW（gcc）
+      - name: Install MSYS2 with MinGW-w64 (i686)
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            mingw-w64-i686-gcc
 
+      # 在 MSYS2 环境中编译，指定 32 位架构
       - name: Build for Windows x86
+        shell: msys2 {0}
         run: |
-          CC=i686-w64-mingw32-gcc CXX=i686-w64-mingw32-g++ GOOS=windows GOARCH=386 CGO_ENABLED=1 go build -ldflags "-w -s" -o e0e1-config.exe .
-        env:
-          CGO_CFLAGS: "-I/usr/include"  # 可能需要，但默认应该可以
+          export CC=i686-w64-mingw32-gcc
+          export CXX=i686-w64-mingw32-g++
+          export GOOS=windows
+          export GOARCH=386
+          export CGO_ENABLED=1
+          go build -ldflags "-w -s" -o e0e1-config.exe .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
