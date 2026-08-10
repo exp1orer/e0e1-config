@@ -1,0 +1,44 @@
+name: Build x64 Binaries
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:   # 支持手动触发
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - os: windows
+            runner: windows-latest
+            ext: .exe
+          - os: linux
+            runner: ubuntu-latest
+            ext: ""
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.20'   # 与项目 go.mod 保持一致[reference:0]
+
+      - name: Build for ${{ matrix.os }}
+        run: |
+          go build -ldflags "-w -s" -o e0e1-config${{ matrix.ext }} .
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: amd64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: e0e1-config-${{ matrix.os }}-amd64
+          path: e0e1-config${{ matrix.ext }}
