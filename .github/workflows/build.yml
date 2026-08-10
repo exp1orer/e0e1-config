@@ -1,4 +1,4 @@
-name: Build Windows x86 Binary (CGO + MSYS2)
+name: Build Windows x86 Binary (Pure Go,强制升级)
 
 on:
   push:
@@ -17,31 +17,24 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'   # 满足 modernc.org 依赖
+          go-version: '1.23'   # 满足 modernc.org 最新依赖
 
-      - name: Install MSYS2 with MinGW-w64 (i686) and SQLite3
-        uses: msys2/setup-msys2@v2
-        with:
-          update: true
-          install: >-
-            mingw-w64-i686-gcc
-            mingw-w64-i686-sqlite3
-            mingw-w64-i686-pkg-config
-          path-type: inherit   # 使 go 命令在 MSYS2 shell 中可用
-
-      - name: Build for Windows x86
-        shell: msys2 {0}
+      # 强制修改 go.mod，将 sqlite 驱动升级到纯 Go 版本
+      - name: Force upgrade modernc.org/sqlite to v1.30.0
         run: |
-          export CC=i686-w64-mingw32-gcc
-          export CXX=i686-w64-mingw32-g++
-          export GOOS=windows
-          export GOARCH=386
-          export CGO_ENABLED=1
-          # 显式指定头文件和库路径（MSYS2 默认安装位置）
-          export CGO_CFLAGS="-I/mingw32/include"
-          export CGO_LDFLAGS="-L/mingw32/lib -lsqlite3"
-          # 可选：设置 pkg-config 路径（备选）
-          export PKG_CONFIG_PATH=/mingw32/lib/pkgconfig
+          go mod edit -require modernc.org/sqlite@v1.30.0
+          go mod tidy
+
+      # 验证版本是否已更新（调试用）
+      - name: Check version
+        run: go list -m modernc.org/sqlite
+
+      # 禁用 CGO，编译 32 位 Windows 二进制
+      - name: Build for Windows x86 (no CGO)
+        run: |
+          $env:CGO_ENABLED = "0"
+          $env:GOOS = "windows"
+          $env:GOARCH = "386"
           go build -ldflags "-w -s" -o e0e1-config.exe .
 
       - name: Upload artifact
