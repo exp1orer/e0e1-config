@@ -1,4 +1,4 @@
-name: Build x64 Binaries
+name: Build Windows x86 Binary
 
 on:
   push:
@@ -9,17 +9,8 @@ on:
 
 jobs:
   build:
-    name: Build ${{ matrix.os }}
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      matrix:
-        include:
-          - os: windows
-            runner: windows-latest
-            ext: .exe
-          - os: linux
-            runner: ubuntu-latest
-            ext: ""
+    name: Build Windows x86
+    runs-on: windows-latest   # 使用 Windows 运行器，便于直接生成 .exe
 
     steps:
       - name: Checkout code
@@ -28,17 +19,17 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.20'   # 与项目 go.mod 保持一致[reference:0]
+          go-version: '1.20'   # 与项目 go.mod 保持一致
 
-      - name: Build for ${{ matrix.os }}
+      - name: Build for Windows x86
         run: |
-          go build -ldflags "-w -s" -o e0e1-config${{ matrix.ext }} .
+          go build -ldflags "-w -s" -o e0e1-config.exe .
         env:
-          GOOS: ${{ matrix.os }}
-          GOARCH: amd64
+          GOOS: windows
+          GOARCH: 386          # 关键：指定 32 位架构
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: e0e1-config-${{ matrix.os }}-amd64
-          path: e0e1-config${{ matrix.ext }}
+          name: e0e1-config-windows-386
+          path: e0e1-config.exe
