@@ -5,13 +5,11 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch:   # 支持手动触发
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Build Windows x86
-    runs-on: windows-latest   # 使用 Windows 运行器，便于直接生成 .exe
-
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,14 +17,18 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.20'   # 与项目 go.mod 保持一致
+          go-version: '1.20'
+
+      - name: Install MinGW and SQLite dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-i686 sqlite3 libsqlite3-dev
 
       - name: Build for Windows x86
         run: |
-          go build -ldflags "-w -s" -o e0e1-config.exe .
+          CC=i686-w64-mingw32-gcc CXX=i686-w64-mingw32-g++ GOOS=windows GOARCH=386 CGO_ENABLED=1 go build -ldflags "-w -s" -o e0e1-config.exe .
         env:
-          GOOS: windows
-          GOARCH: 386          # 关键：指定 32 位架构
+          CGO_CFLAGS: "-I/usr/include"  # 可能需要，但默认应该可以
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
