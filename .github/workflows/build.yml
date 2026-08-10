@@ -1,4 +1,4 @@
-name: Build Windows x86 Binary (CGO + SQLite)
+name: Build Windows x86 Binary (Pure Go, no CGO)
 
 on:
   push:
@@ -19,24 +19,18 @@ jobs:
         with:
           go-version: '1.20'
 
-      - name: Install MSYS2 with MinGW-w64 (i686) and SQLite3 dev
-        uses: msys2/setup-msys2@v2
-        with:
-          update: true
-          install: mingw-w64-i686-gcc mingw-w64-i686-sqlite3
-          path-type: inherit
-
-      - name: Build for Windows x86
-        shell: msys2 {0}
+      # 强制升级 modernc.org/sqlite 到纯 Go 版本（v1.28+）
+      - name: Upgrade SQLite driver to pure-Go version
         run: |
-          export CC=i686-w64-mingw32-gcc
-          export CXX=i686-w64-mingw32-g++
-          export GOOS=windows
-          export GOARCH=386
-          export CGO_ENABLED=1
-          # 指定头文件路径（通常安装后自动包含）
-          export CGO_CFLAGS="-I/mingw32/include"
-          export CGO_LDFLAGS="-L/mingw32/lib -lsqlite3"
+          go get modernc.org/sqlite@latest
+          go mod tidy
+
+      # 现在可以禁用 CGO 编译 32 位 Windows 二进制
+      - name: Build for Windows x86
+        run: |
+          $env:CGO_ENABLED = "0"
+          $env:GOOS = "windows"
+          $env:GOARCH = "386"
           go build -ldflags "-w -s" -o e0e1-config.exe .
 
       - name: Upload artifact
